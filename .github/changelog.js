@@ -12,7 +12,7 @@ var parserOpts = {
 		'type',
 		'subject'
 	],
-	mergePattern: /^Merge pull request #(.*) from .*$/,
+	mergePattern: /(?:^Merge pull request |.*\()?#(\d+)(?:\)| from .*)$/,
 	mergeCorrespondence: ['pr']
 	// noteKeywords: ['BREAKING CHANGE', 'BREAKING CHANGES'],
 	// revertPattern: /^revert:\s([\s\S]*?)\s*This reverts commit (\w*)\./,
@@ -52,6 +52,29 @@ var writerOpts = {
 			return;
 		}
 
+		var issues = [];
+
+		if (commit.header && commit.header === '-hash-') {
+			var match = commit.merge.match(/^\[([A-Za-z]+)\].*/);
+			if (match) {
+				commit.type = match[1];
+				commit.subject = commit.merge.replace(/^\[[A-Za-z]+\] ?/, '').replace(/ \(#[0-9]+\)$/, '');
+			}
+		}
+
+		if (typeof commit.subject === 'string') {
+			if (commit.subject === '-hash-') {
+				commit.subject = commit.merge.replace(/ \(#[0-9]+\)$/, '');
+			}
+			// GitHub issue URLs.
+			commit.subject = commit.subject.replace(/#([0-9]+)/g, function(_, issue) {
+				issues.push(issue);
+				return '[#' + issue + '](' + gitUrl + '/issue/' + issue + ')';
+			});
+			// GitHub user URLs.
+			commit.subject = commit.subject.replace(/@([a-zA-Z0-9_]+)/g, '[@$1](https://github.com/$1)');
+		}
+
 		// console.log(commit);
 		commit.type = (commit.type || 'OTHER').toUpperCase();
 		if (LABELS[commit.type] == null) {
@@ -60,20 +83,8 @@ var writerOpts = {
 
 		commit.pr_url = gitUrl + '/pull/' + commit.pr;
 
-		var issues = [];
-
 		if (typeof commit.hash === 'string') {
 			commit.hash = commit.hash.substring(0, 7);
-		}
-
-		if (typeof commit.subject === 'string') {
-			// GitHub issue URLs.
-			commit.subject = commit.subject.replace(/#([0-9]+)/g, function(_, issue) {
-				issues.push(issue);
-				return '[#' + issue + '](' + gitUrl + '/issue/' + issue + ')';
-			});
-			// GitHub user URLs.
-			commit.subject = commit.subject.replace(/@([a-zA-Z0-9_]+)/g, '[@$1](https://github.com/$1)');
 		}
 
 		// remove references that already appear in the subject
