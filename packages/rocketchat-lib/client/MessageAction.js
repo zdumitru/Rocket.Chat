@@ -149,6 +149,23 @@ Meteor.startup(function() {
 	});
 
 	RocketChat.MessageAction.addButton({
+		id: 'forward-message',
+		icon: 'jump',
+		label: 'Forward',
+		context: ['message', 'message-mobile'],
+		action() {
+			const { _id } = this._arguments[1];
+
+			FlowRouter.go(FlowRouter.path('forward-message', {}, {id: _id}));
+		},
+		condition(message) {
+			return !(RocketChat.models.Subscriptions.findOne({rid: message.rid}) === null);
+		},
+		order: 2,
+		group: 'menu'
+	});
+
+	RocketChat.MessageAction.addButton({
 		id: 'edit-message',
 		icon: 'edit',
 		label: 'Edit',
@@ -184,7 +201,7 @@ Meteor.startup(function() {
 				return true;
 			}
 		},
-		order: 2,
+		order: 3,
 		group: 'menu'
 	});
 
@@ -227,7 +244,7 @@ Meteor.startup(function() {
 				return true;
 			}
 		},
-		order: 3,
+		order: 4,
 		group: 'menu'
 	});
 
@@ -254,7 +271,7 @@ Meteor.startup(function() {
 
 			return true;
 		},
-		order: 4,
+		order: 5,
 		group: 'menu'
 	});
 
@@ -280,7 +297,7 @@ Meteor.startup(function() {
 
 			return true;
 		},
-		order: 5,
+		order: 6,
 		group: 'menu'
 	});
 
@@ -305,7 +322,7 @@ Meteor.startup(function() {
 
 			return true;
 		},
-		order: 6,
+		order: 7,
 		group: 'menu'
 	});
 
