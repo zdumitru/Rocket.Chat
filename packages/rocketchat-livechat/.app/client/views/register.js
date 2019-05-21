@@ -1,13 +1,19 @@
 /* globals Department, Livechat, LivechatVideoCall */
-import visitor from '../../imports/client/visitor';
+import { Meteor } from 'meteor/meteor';
+import { ReactiveVar } from 'meteor/reactive-var';
+import { Template } from 'meteor/templating';
+import { TAPi18n } from 'meteor/tap:i18n';
 import _ from 'underscore';
+import s from 'underscore.string';
+
+import visitor from '../../imports/client/visitor';
 
 Template.register.helpers({
 	error() {
 		return Template.instance().error.get();
 	},
 	welcomeMessage() {
-		return '';
+		return Livechat.registrationFormMessage;
 	},
 	showDepartments() {
 		return Department.find({ showOnRegistration: true }).count() > 1;
@@ -20,7 +26,19 @@ Template.register.helpers({
 	},
 	selectedDepartment() {
 		return this._id === Livechat.department;
-	}
+	},
+	showNameFieldRegisterForm() {
+		return Livechat.nameFieldRegistrationForm;
+	},
+	showEmailFieldRegisterForm() {
+		return Livechat.emailFieldRegistrationForm;
+	},
+	getName() {
+		return Livechat.guestName;
+	},
+	getEmail() {
+		return Livechat.guestEmail;
+	},
 });
 
 Template.register.events({
@@ -33,35 +51,51 @@ Template.register.events({
 				LivechatVideoCall.request();
 			}
 		};
+		const form = e.currentTarget;
 
-		const $name = instance.$('input[name=name]');
-		const $email = instance.$('input[name=email]');
-		if (!($name.val().trim() && $email.val().trim())) {
-			return instance.showError(TAPi18n.__('Please_fill_name_and_email'));
-		} else {
-			let departmentId = instance.$('select[name=department]').val();
-			if (!departmentId) {
-				const department = Department.findOne({ showOnRegistration: true });
-				if (department) {
-					departmentId = department._id;
-				}
-			}
+		const fields = [];
+		let name = Livechat.guestName;
+		let email = Livechat.guestEmail;
 
-			const guest = {
-				token: visitor.getToken(),
-				name: $name.val(),
-				email: $email.val(),
-				department: Livechat.department || departmentId
-			};
-			Meteor.call('livechat:registerGuest', guest, function(error, result) {
-				if (error != null) {
-					return instance.showError(error.reason);
-				}
-				parentCall('callback', ['pre-chat-form-submit', _.omit(guest, 'token')]);
-				visitor.setId(result.userId);
-				start();
-			});
+		if (Livechat.nameFieldRegistrationForm) {
+			fields.push('name');
+			name = instance.$('input[name=name]').val();
 		}
+
+		if (Livechat.emailFieldRegistrationForm) {
+			fields.push('email');
+			email = instance.$('input[name=email]').val();
+		}
+
+		if (!instance.validateForm(form, fields)) {
+			return instance.showError(TAPi18n.__('You_must_complete_all_fields'));
+		}
+		let departmentId = instance.$('select[name=department]').val();
+		if (!departmentId) {
+			const department = Department.findOne({ showOnRegistration: true });
+			if (department) {
+				departmentId = department._id;
+			}
+		}
+
+		Livechat.department = departmentId;
+
+		const guest = {
+			token: visitor.getToken(),
+			name,
+			email,
+			department: Livechat.department,
+		};
+
+		Meteor.call('livechat:registerGuest', guest, function(error, result) {
+			if (error != null) {
+				return instance.showError(error.reason);
+			}
+			parentCall('callback', ['pre-chat-form-submit', _.omit(guest, 'token')]);
+			visitor.setId(result.userId);
+			visitor.setData(result.visitor);
+			start();
+		});
 	},
 	'click .error'(e, instance) {
 		return instance.hideError();
@@ -71,12 +105,19 @@ Template.register.events({
 	},
 	'click .request-video'(e, instance) {
 		instance.request = 'video';
-	}
+	},
 });
 
 Template.register.onCreated(function() {
 	this.error = new ReactiveVar();
 	this.request = '';
+
+	this.validateForm = (form, fields) => {
+		const valid = fields.every((field) => !_.isEmpty(s.trim(form.elements[field].value)));
+
+		return valid;
+	};
+
 	this.showError = (msg) => {
 		$('.error').addClass('show');
 		this.error.set(msg);
