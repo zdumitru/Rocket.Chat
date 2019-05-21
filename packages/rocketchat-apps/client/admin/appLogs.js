@@ -1,3 +1,7 @@
+import { ReactiveVar } from 'meteor/reactive-var';
+import { FlowRouter } from 'meteor/kadira:flow-router';
+import { Template } from 'meteor/templating';
+import { TAPi18n } from 'meteor/tap:i18n';
 import moment from 'moment';
 import hljs from 'highlight.js';
 
@@ -14,7 +18,7 @@ Template.appLogs.onCreated(function() {
 
 	Promise.all([
 		RocketChat.API.get(`apps/${ id }`),
-		RocketChat.API.get(`apps/${ id }/logs`)
+		RocketChat.API.get(`apps/${ id }/logs`),
 	]).then((results) => {
 
 		instance.app.set(results[0].app);
@@ -59,14 +63,18 @@ Template.appLogs.helpers({
 		return moment(date).format('L LTS');
 	},
 	jsonStringify(data) {
+		let value = '';
+
 		if (!data) {
-			return '';
+			return value;
 		} else if (typeof data === 'object') {
-			return hljs.highlight('json', JSON.stringify(data, null, 2)).value;
+			value = hljs.highlight('json', JSON.stringify(data, null, 2)).value;
 		} else {
-			return hljs.highlight('json', data).value;
+			value = hljs.highlight('json', data).value;
 		}
-	}
+
+		return value.replace(/\\\\n/g, '<br>');
+	},
 });
 
 Template.appLogs.events({
@@ -78,5 +86,5 @@ Template.appLogs.events({
 	'click .collapse': (e) => {
 		$(e.currentTarget).closest('.section').addClass('section-collapsed');
 		$(e.currentTarget).closest('button').addClass('expand').removeClass('collapse').find('span').text(TAPi18n.__('Expand'));
-	}
+	},
 });

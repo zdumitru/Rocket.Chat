@@ -3,7 +3,7 @@ Package.describe({
 	name: 'rocketchat:message-snippet',
 	version: '0.0.1',
 	summary: 'Transform your multilines messages into snippet files.',
-	git: ''
+	git: '',
 });
 
 Package.onUse(function(api) {
@@ -16,37 +16,11 @@ Package.onUse(function(api) {
 		'rocketchat:theme',
 		'random',
 		'tracker',
-		'webapp'
-	]);
-
-	api.use([
+		'webapp',
 		'templating',
-		'kadira:flow-router'
-	], 'client');
-
-
-	// Server
-	api.addFiles([
-		'server/startup/settings.js',
-		'server/methods/snippetMessage.js',
-		'server/requests.js',
-		'server/publications/snippetedMessagesByRoom.js',
-		'server/publications/snippetedMessage.js'
-	], 'server');
-
-	// Client
-	api.addFiles([
-		'client/lib/collections.js',
-		'client/actionButton.js',
-		'client/messageType.js',
-		'client/snippetMessage.js',
-		'client/router.js',
-		'client/page/snippetPage.html',
-		'client/page/snippetPage.js',
-		'client/tabBar/tabBar.js',
-		'client/tabBar/views/snippetedMessages.html',
-		'client/tabBar/views/snippetedMessages.js',
-		'client/page/stylesheets/snippetPage.css'
-	], 'client');
-
+		'kadira:flow-router',
+		'kadira:blaze-layout',
+	]);
+	api.mainModule('client/index.js', 'client');
+	api.mainModule('server/index.js', 'server');
 });
